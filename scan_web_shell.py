@@ -38,9 +38,17 @@ def scan_file(file_name,regx,result):
         if not is_file_leggle(file_name,regx):
             result.append(file_name)
     elif os.path.isdir(file_name) and os.access(file_name,os.R_OK):
+        temp_str='Scanning folder:%s' % os.path.abspath(file_name)
+        output_to_line(temp_str)
+        sys.stdout.write('\n')
         for item in os.listdir(file_name):
             item_file=os.path.join(file_name,item)
             scan_file(item_file,regx,result)
+
+def output_to_line(outstr):
+    outstr+='       \r'
+    sys.stdout.write(outstr)
+    sys.stdout.flush()
 
 def caclu_md5(file_name):
     if os.path.isfile(file_name) and os.access(file_name,os.R_OK):
@@ -77,13 +85,13 @@ def is_file_leggle(file_name,regex):
     pattern=re.compile(regex)
     result=True
     #print 'Scan file %s ' % file_name
-    if not file_name.endswith('.jsp'):
-        return True
-    sql='select file_md5 from file_info where file_name=?'
-    param=((file_name,))
-    file_md5=caclu_md5(file_name)
-    if (file_md5,) in select_sql(sql=sql,data=param):
-        return True
+#    if not (file_name.endswith('jsp') or file_name.endswith('java')):
+#        return True
+#    sql='select file_md5 from file_info where file_name=?'
+#    param=((file_name,))
+#    file_md5=caclu_md5(file_name)
+#    if (file_md5,) in select_sql(sql=sql,data=param):
+#        return True
     with open(file_name,'r') as open_file:
         temp=open_file.readline()
         while temp != '':
@@ -95,18 +103,18 @@ def is_file_leggle(file_name,regex):
             temp=open_file.readline()
     if result:
         sql='insert into file_info(file_name,file_md5) values (?,?)'
-        param=((file_name,file_md5),)
+#        param=((file_name,file_md5),)
     else:
         sql='insert into webshell_info(file_name,file_md5,lastmodify) values (?,?,?)'
-        param=((file_name,file_md5,datetime.datetime.fromtimestamp(os.path.getmtime(file_name))),)
-    excute_sql(sql=sql,data=param)
+#        param=((file_name,file_md5,datetime.datetime.fromtimestamp(os.path.getmtime(file_name))),)
+#    excute_sql(sql=sql,data=param)
     return result
 
 def output(outputway,outputdata):
     if outputway in ('t','terminal'):
-        print 'Possible webshell file(total:%d) is(please check the same folder if there are some other webshells):\n'%len(outputdata)
+        print '\033[93m Possible webshell file(total:%d) is(please check the same folder if there are some other webshells):\n'%len(outputdata)
         for o in outputdata:
-            print o
+            print '\033[93m'+str(o)+'\033[0m'
     else:
         print 'Write result to file:%s' % outputway
         with open(outputway,'w') as f:
@@ -136,6 +144,7 @@ def main():
             database=value
             conn=sqlite3.connect(database)
         if opt in ('-o','--output'):
+            print value
             outway=value
     if target_file==[]:
         print 'Target file empty!'
@@ -150,7 +159,7 @@ def main():
     print 'Scaning......'
     for target in target_file:
         scan_file(target,regex_string,result)
-    print 'Total %d possibile webshell.' % len(result)
+    print '\033[91m Total %d possibile webshell. \033[0m' % len(result)
     output(outway,result)
     print 'Scan finished.'
 if __name__=='__main__':
